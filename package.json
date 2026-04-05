@@ -1,0 +1,29 @@
+{
+  "name": "node-rest-shop",
+  "version": "1.0.0",
+  "description": "A Node.js RESTful API project (build a simple shop)",
+  "homepage": "https://github.com/PrithwishDas101/Node-Rest-Shop#readme",
+  "bugs": {
+    "url": "https://github.com/PrithwishDas101/Node-Rest-Shop/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PrithwishDas101/Node-Rest-Shop.git"
+  },
+  "keywords": [
+    "node",
+    "resful",
+    "api"
+  ],
+  "license": "ISC",
+  "author": "Prithwish Das",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1"
+  }
+}
