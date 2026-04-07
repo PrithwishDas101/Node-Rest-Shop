@@ -1,59 +1,114 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 
-router.get('/', (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        message: "Handling GET requests to /products"
-    })
-})
+const Product = require('../models/products');
 
-router.post('/', (req, res, next) => {
+// GET ALL PRODUCTS
+router.get('/', (req, res) => {
+    Product.find()
+        .exec()
+        .then(docs => {
+            console.log(docs);
 
-    const product = {
+            if (docs.length > 0) {
+                return res.status(200).json(docs);
+            }
+
+            return res.status(404).json({
+                message: "No data found"
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err.message
+            });
+        });
+});
+
+// CREATE PRODUCT
+router.post('/', (req, res) => {
+    const product = new Product({
+        _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
         price: req.body.price
-    }
+    });
 
-    res.status(201).json({
-        success: true,
-        message: "Handling POST requests to /products",
-        createdProduct: product
-    })
-})
-
-router.get('/:productId', (req, res, next) => {
-    const id = req.params.productId;
-    if (id === 'special') {
-        res.status(200).json({
-            success: true,
-            message: "Hey you found our special item"
-        });
-    }
-    else{
-        res.status(200).json({
-            success: true,
-            message: `Hey you found our product ${id}`
+    product.save()
+        .then(result => {
+            res.status(201).json({
+                success: true,
+                createdProduct: result
+            });
         })
-    }
-})
+        .catch(err => {
+            res.status(500).json({
+                error: err.message
+            });
+        });
+});
 
-router.post('/:productId', (req, res, next) => {
+// GET SINGLE PRODUCT
+router.get('/:productId', (req, res) => {
     const id = req.params.productId;
-    
-    res.status(201).json({
-        success:true,
-        message: `Product with id ${id} has been updated`
-    })
-})
 
-router.delete('/:productId', (req, res, next) => {
+    Product.findById(id)
+        .exec()
+        .then(doc => {
+            if (doc) {
+                return res.status(200).json(doc);
+            }
+
+            return res.status(404).json({
+                message: "No valid entry for that ID"
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err.message
+            });
+        });
+});
+
+// UPDATE PRODUCT (PATCH)
+router.patch('/:productId', (req, res) => {
     const id = req.params.productId;
-    
-    res.status(200).json({
-        success:true,
-        message: `Product with id ${id} has been deleted`
-    })
-})
 
-module.exports = router
+    Product.updateOne(
+        { _id: id },
+        { $set: req.body }   // ✅ clean & correct
+    )
+        .exec()
+        .then(result => {
+            res.status(200).json({
+                success: true,
+                result
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err.message
+            });
+        });
+});
+
+// DELETE PRODUCT
+router.delete('/:productId', (req, res) => {
+    const id = req.params.productId;
+
+    Product.deleteOne({ _id: id })
+        .exec()
+        .then(result => {
+            res.status(200).json({
+                success: true,
+                result
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                error: err.message
+            });
+        });
+});
+
+module.exports = router;
