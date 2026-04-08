@@ -9,6 +9,7 @@ router.get('/', (req, res, next) => {
     Order
         .find()
         .select('product quantity _id')
+        .populate('product', 'name price')
         .exec()
         .then(docs => {
             res.status(200).json({
@@ -89,7 +90,8 @@ router.get('/:orderId', async (req, res) => {
             });
         }
 
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId)
+        .populate('product', 'name price');
         if (!order) {
             return res.status(404).json({
                 success: false,
