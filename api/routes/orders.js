@@ -1,44 +1,151 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose')
+
+const Order = require('../models/orders');
+const Product = require('../models/products');
 
 router.get('/', (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        message: "Orders were fetched"
-    })
+    Order
+        .find()
+        .select('product quantity _id')
+        .exec()
+        .then(docs => {
+            res.status(200).json({
+                success: true,
+                count: docs.length,
+                orders: docs.map(doc => {
+                    return {
+                        _id: doc._id,
+                        product: doc.product,
+                        quantity: doc.quantity
+                    }
+                })
+            })
+        })
+        .catch(err => {
+            res.status(500).json({
+                success: false,
+                error: {
+                    message: err.message
+                }
+            });
+        })
 })
 
-router.post('/', (req, res, next) => {
+router.post('/', async (req, res) => {
+    try {
+        const productId = req.body.productId;
 
-    const order = {
-        orderId: req.body.orderId,
-        quantity: req.body.quantity
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Product not found" }
+            });
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Product not found" }
+            });
+        }
+
+        const order = new Order({
+            _id: new mongoose.Types.ObjectId(),
+            quantity: req.body.quantity,
+            product: productId
+        });
+
+        const result = await order.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Order stored",
+            createdOrder: {
+                _id: result._id,
+                product: result.product,
+                quantity: result.quantity
+            }
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: { message: err.message }
+        });
     }
+});
 
-    res.status(201).json({
-        success: true,
-        message: "Order was created",
-        Order: order
-    })
-})
+router.get('/:orderId', async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
 
-router.get('/:orderId', (req, res, next) => {
-    const id = req.params.orderId;
-    res.status(200).json({
-        success: true,
-        message: `Order details`,
-        orderId: req.params.orderId
-    })
-})
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Order not found" }
+            });
+        }
 
-router.delete('/:orderId', (req, res, next) => {
-    const id = req.params.orderId;
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Order not found" }
+            });
+        }
 
-    res.status(200).json({
-        success: true,
-        message: `Order deleted`,
-        orderId: req.params.orderId
-    })
-})
+        res.status(200).json({
+            success: true,
+            order: {
+                orderId: order._id,
+                product: order.product,
+                quantity: order.quantity
+            }
+        });
 
-module.exports = router
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: { message: err.message }
+        });
+    }
+});
+
+
+router.delete('/:orderId', async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Order not found" }
+            });
+        }
+
+        const result = await Order.deleteOne({ _id: orderId });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Order not found" }
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Order deleted",
+            orderId: orderId
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: { message: err.message }
+        });
+    }
+});
+
+module.exports = router;
