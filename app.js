@@ -13,6 +13,7 @@ mongoose.connect(
 )
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.log(err));
+mongoose.Promise = global.Promise;
 
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({extended: false}));
