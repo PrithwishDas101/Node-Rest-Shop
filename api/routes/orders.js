@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const Order = require('../models/orders');
 const Product = require('../models/products');
@@ -91,7 +91,7 @@ router.get('/:orderId', async (req, res) => {
         }
 
         const order = await Order.findById(orderId)
-        .populate('product', 'name price');
+            .populate('product', 'name price');
         if (!order) {
             return res.status(404).json({
                 success: false,
