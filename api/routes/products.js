@@ -1,12 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const multer = require('multer');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './uploads/');
+    },
+    filename: function (req, file, cb) {
+        const name = new Date().toISOString().replace(/:/g, '-') + file.originalname;
+        cb(null, name);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    // reject a file
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
+        cb(null, true)
+    } else {
+        cb(null, false)
+    }
+}
+
+const upload = multer({
+    storage: storage, limits: {
+        fileSize: 1024 * 1024 * 5 // (5mb)
+    },
+    fileFilter: fileFilter
+});
 
 const Product = require('../models/products');
 
-router.get('/', (req, res) => {
+router.get('/', (req, res, next) => {
     Product.find()
-        .select('name price _id')
+        .select('name price _id productImage')
         .exec()
         .then(docs => {
             const response = {
@@ -16,6 +43,7 @@ router.get('/', (req, res) => {
                         name: doc.name,
                         price: doc.price,
                         _id: doc._id,
+                        productImage: doc.productImage
                     }
                 })
             }
@@ -37,11 +65,15 @@ router.get('/', (req, res) => {
         });
 });
 
-router.post('/', (req, res) => {
+router.post('/', upload.single('productImage'), (req, res, next) => {
+
+    console.log(req.file);
+
     const product = new Product({
         _id: new mongoose.Types.ObjectId(),
         name: req.body.name,
-        price: req.body.price
+        price: req.body.price,
+        productImage: req.file.path
     });
 
     product.save()
@@ -62,18 +94,19 @@ router.post('/', (req, res) => {
         });
 });
 
-router.get('/:productId', (req, res) => {
+router.get('/:productId', (req, res, next) => {
     const id = req.params.productId;
 
     Product.findById(id)
-    .select('name price _id')
+        .select('name price _id productImage')
         .exec()
         .then(doc => {
             if (doc) {
                 return res.status(200).json({
                     name: doc.name,
                     price: doc.price,
-                    _id: doc._id
+                    _id: doc._id,
+                    productImage: doc.productImage
                 });
             }
 
@@ -88,7 +121,7 @@ router.get('/:productId', (req, res) => {
         });
 });
 
-router.patch('/:productId', (req, res) => {
+router.patch('/:productId', (req, res, next) => {
     const id = req.params.productId;
 
     Product.updateOne(
@@ -109,7 +142,7 @@ router.patch('/:productId', (req, res) => {
         });
 });
 
-router.delete('/:productId', (req, res) => {
+router.delete('/:productId', (req, res, next) => {
     const id = req.params.productId;
 
     Product.deleteOne({ _id: id })
