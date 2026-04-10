@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Product = require('../models/products');
 
-exports.products_get_all =  (req, res, next) => {
+exports.products_get_all = (req, res, next) => {
     Product.find()
         .select('name price _id productImage')
         .exec()
@@ -38,7 +38,26 @@ exports.products_get_all =  (req, res, next) => {
 
 exports.products_create_product = (req, res, next) => {
 
-    console.log(req.file);
+    if (!req.body.name || !req.body.price) {
+        return res.status(400).json({
+            success: false,
+            error: { message: "Name and price are required" }
+        });
+    }
+
+    if (isNaN(req.body.price) || Number(req.body.price) <= 0) {
+        return res.status(400).json({
+            success: false,
+            error: { message: "Price must be a positive number" }
+        });
+    }
+
+    if (!req.file) {
+        return res.status(400).json({
+            success: false,
+            error: { message: "Product image is required" }
+        });
+    }
 
     const product = new Product({
         _id: new mongoose.Types.ObjectId(),
@@ -63,7 +82,7 @@ exports.products_create_product = (req, res, next) => {
                 error: err.message
             });
         });
-}
+};
 
 exports.products_get_single_product = (req, res, next) => {
     const id = req.params.productId;
@@ -95,12 +114,40 @@ exports.products_get_single_product = (req, res, next) => {
 exports.products_update_product = (req, res, next) => {
     const id = req.params.productId;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({
+            success: false,
+            message: "Product not found"
+        });
+    }
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "No data provided to update"
+        });
+    }
+
+    if (req.body.price && (isNaN(req.body.price) || Number(req.body.price) <= 0)) {
+        return res.status(400).json({
+            success: false,
+            message: "Price must be a positive number"
+        });
+    }
+
     Product.updateOne(
         { _id: id },
         { $set: req.body }
     )
         .exec()
         .then(result => {
+            if (result.matchedCount === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Product not found"
+                });
+            }
+
             res.status(200).json({
                 success: true,
                 message: "Product updated",
