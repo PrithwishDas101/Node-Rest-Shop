@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const User = require('../models/users');
 
@@ -35,7 +36,7 @@ router.post('/signup', async (req, res) => {
             });
         }
 
-        const hash = await bcrypt.hash(password, 15);
+        const hash = await bcrypt.hash(password, 10);
 
         const newUser = new User({
             _id: new mongoose.Types.ObjectId(),
@@ -64,6 +65,59 @@ router.post('/signup', async (req, res) => {
     }
 });
 
+router.post('/login', (req, res, next) => {
+    User.find({ email: req.body.email })
+        .exec()
+        .then(user => {
+            if (user.length < 1) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication failed"
+                });
+            }
+
+            bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+
+                if (err) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "Authentication failed"
+                    });
+                }
+
+                if (result) {
+
+                    const token = jwt.sign({
+                        email: user[0].email,
+                        userId: user[0]._id
+                    },
+                        process.env.JWT_SECRET_KEY,
+                        {
+                            expiresIn: "1h"
+                        }
+                    )
+
+                    return res.status(200).json({
+                        success: true,
+                        message: "Authentication successful",
+                        token: token
+                    });
+                }
+
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication failed"
+                });
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        });
+});
+
 router.delete('/:userId', (req, res, next) => {
     User
         .deleteOne({ _id: req.params.userId })
@@ -78,7 +132,7 @@ router.delete('/:userId', (req, res, next) => {
                 success: false,
                 message: err.message
             })
-            
+
         })
 })
 
