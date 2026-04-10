@@ -93,17 +93,26 @@ exports.users_create_user = async (req, res) => {
 };
 
 exports.users_login_user = (req, res, next) => {
-    User.find({ email: req.body.email })
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: "Email and password are required"
+        });
+    }
+
+    User.findOne({ email })
         .exec()
         .then(user => {
-            if (user.length < 1) {
+            if (!user) {
                 return res.status(401).json({
                     success: false,
                     message: "Authentication failed"
                 });
             }
 
-            bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+            bcrypt.compare(password, user.password, (err, result) => {
 
                 if (err) {
                     return res.status(401).json({
@@ -115,8 +124,8 @@ exports.users_login_user = (req, res, next) => {
                 if (result) {
 
                     const token = jwt.sign({
-                        email: user[0].email,
-                        userId: user[0]._id
+                        email: user.email,
+                        userId: user._id
                     },
                         process.env.JWT_SECRET_KEY,
                         {
@@ -147,6 +156,13 @@ exports.users_login_user = (req, res, next) => {
 
 exports.users_delete_user = (req, res, next) => {
     const userId = req.params.userId;
+
+    if (!req.userData || !req.userData.userId) {
+        return res.status(401).json({
+            success: false,
+            message: "Authentication failed"
+        });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         return res.status(404).json({
