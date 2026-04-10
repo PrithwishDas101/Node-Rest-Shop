@@ -8,6 +8,34 @@ exports.users_create_user = async (req, res) => {
     try {
         const { email, password, username, age } = req.body;
 
+        if (!email || !password || !username || age === undefined) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "All fields are required" }
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "Password must be at least 6 characters" }
+            });
+        }
+
+        if (typeof age !== "number" || age <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "Age must be a positive number" }
+            });
+        }
+
+        if (typeof username !== "string" || username.length < 3) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "Username must be at least 3 characters" }
+            });
+        }
+
         const emailExists = await User.findOne({ email });
         if (emailExists) {
             return res.status(409).json({
