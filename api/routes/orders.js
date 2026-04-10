@@ -4,8 +4,9 @@ const mongoose = require('mongoose');
 
 const Order = require('../models/orders');
 const Product = require('../models/products');
+const checkAuth = require('../middleware/check-auth');
 
-router.get('/', (req, res, next) => {
+router.get('/', checkAuth, (req, res, next) => {
     Order
         .find()
         .select('product quantity _id')
@@ -34,7 +35,7 @@ router.get('/', (req, res, next) => {
         })
 })
 
-router.post('/', async (req, res) => {
+router.post('/', checkAuth, async (req, res) => {
     try {
         const productId = req.body.productId;
 
@@ -79,7 +80,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/:orderId', async (req, res) => {
+router.get('/:orderId', checkAuth, async (req, res) => {
     try {
         const orderId = req.params.orderId;
 
@@ -117,7 +118,7 @@ router.get('/:orderId', async (req, res) => {
 });
 
 
-router.delete('/:orderId', async (req, res) => {
+router.delete('/:orderId', checkAuth, async (req, res) => {
     try {
         const orderId = req.params.orderId;
 
