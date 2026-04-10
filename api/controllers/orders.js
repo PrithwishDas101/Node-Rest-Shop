@@ -5,8 +5,8 @@ const Product = require("../models/products")
 
 exports.orders_get_all = (req, res, next) => {
     Order
-        .find()
-        .select('product quantity _id')
+        .find({ user: req.userData.userId })
+        .select('product quantity _id user')
         .populate('product', 'name price')
         .exec()
         .then(docs => {
@@ -25,16 +25,28 @@ exports.orders_get_all = (req, res, next) => {
         .catch(err => {
             res.status(500).json({
                 success: false,
-                error: {
-                    message: err.message
-                }
+                error: { message: err.message }
             });
         })
 }
 
 exports.orders_create_order = async (req, res) => {
     try {
-        const productId = req.body.productId;
+        const { productId, quantity } = req.body;
+
+        if (!productId || quantity === undefined) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "productId and quantity are required" }
+            });
+        }
+
+        if (typeof quantity !== "number" || quantity <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: { message: "Quantity must be a positive number" }
+            });
+        }
 
         if (!mongoose.Types.ObjectId.isValid(productId)) {
             return res.status(404).json({
@@ -53,8 +65,9 @@ exports.orders_create_order = async (req, res) => {
 
         const order = new Order({
             _id: new mongoose.Types.ObjectId(),
-            quantity: req.body.quantity,
-            product: productId
+            quantity: quantity,
+            product: productId,
+            user: req.userData.userId
         });
 
         const result = await order.save();
@@ -90,10 +103,18 @@ exports.orders_get_single_order = async (req, res) => {
 
         const order = await Order.findById(orderId)
             .populate('product', 'name price');
+
         if (!order) {
             return res.status(404).json({
                 success: false,
                 error: { message: "Order not found" }
+            });
+        }
+
+        if (order.user.toString() !== req.userData.userId) {
+            return res.status(403).json({
+                success: false,
+                error: { message: "Unauthorized" }
             });
         }
 
@@ -122,6 +143,22 @@ exports.orders_delete_order = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 error: { message: "Order not found" }
+            });
+        }
+
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                error: { message: "Order not found" }
+            });
+        }
+
+        if (order.user.toString() !== req.userData.userId) {
+            return res.status(403).json({
+                success: false,
+                error: { message: "Unauthorized" }
             });
         }
 
