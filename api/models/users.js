@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const usersSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
@@ -15,9 +15,14 @@ const usersSchema = mongoose.Schema({
     username: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        trim: true,
+        minlength: 3
     },
-    age: { type: Number }
-})
+    age: {
+        type: Number,
+        min: 1
+    }
+}, { timestamps: true });
 
-module.exports = mongoose.model('Users', usersSchema);
+module.exports = mongoose.model('User', usersSchema);

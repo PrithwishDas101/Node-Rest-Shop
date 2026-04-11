@@ -10,35 +10,35 @@ const storage = multer.diskStorage({
         cb(null, './uploads/');
     },
     filename: function (req, file, cb) {
-        const name = new Date().toISOString().replace(/:/g, '-') + file.originalname;
-        cb(null, name);
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, unique + '-' + file.originalname);
     }
 });
 
 const fileFilter = (req, file, cb) => {
-    // reject a file
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
-        cb(null, true)
+    if (
+        file.mimetype === 'image/jpeg' ||
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg'
+    ) {
+        cb(null, true);
     } else {
-        cb(null, false)
+        cb(new Error("Only JPEG, PNG, JPG allowed"), false);
     }
-}
+};
 
 const upload = multer({
-    storage: storage, limits: {
-        fileSize: 1024 * 1024 * 5 // (5mb)
+    storage: storage,
+    limits: {
+        fileSize: 1024 * 1024 * 5
     },
     fileFilter: fileFilter
 });
 
 router.get('/', ProductsController.products_get_all);
-
 router.post('/', checkAuth, upload.single('productImage'), ProductsController.products_create_product);
-
 router.get('/:productId', ProductsController.products_get_single_product);
-
 router.patch('/:productId', checkAuth, ProductsController.products_update_product);
-
 router.delete('/:productId', checkAuth, ProductsController.products_delete_product);
 
 module.exports = router;

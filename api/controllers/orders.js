@@ -7,19 +7,27 @@ exports.orders_get_all = (req, res, next) => {
     Order
         .find({ user: req.userData.userId })
         .select('product quantity _id user')
-        .populate('product', 'name price')
+        .populate('product')
         .exec()
         .then(docs => {
             res.status(200).json({
                 success: true,
-                count: docs.length,
-                orders: docs.map(doc => {
-                    return {
-                        _id: doc._id,
-                        product: doc.product,
-                        quantity: doc.quantity
-                    }
-                })
+                data: {
+                    count: docs.length,
+                    orders: docs.map(doc => {
+                        const product = doc.product || {};
+                        return {
+                            _id: doc._id,
+                            product: {
+                                _id: product._id,
+                                name: product.name,
+                                price: Number(product.price) || 0,
+                                productImage: product.productImage
+                            },
+                            quantity: doc.quantity
+                        };
+                    })
+                }
             })
         })
         .catch(err => {
@@ -74,11 +82,13 @@ exports.orders_create_order = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Order stored",
-            createdOrder: {
-                _id: result._id,
-                product: result.product,
-                quantity: result.quantity
+            data: {
+                message: "Order stored",
+                order: {
+                    _id: result._id,
+                    product: result.product,
+                    quantity: result.quantity
+                }
             }
         });
 
@@ -120,13 +130,14 @@ exports.orders_get_single_order = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            order: {
-                orderId: order._id,
-                product: order.product,
-                quantity: order.quantity
+            data: {
+                order: {
+                    orderId: order._id,
+                    product: order.product,
+                    quantity: order.quantity
+                }
             }
         });
-
     } catch (err) {
         res.status(500).json({
             success: false,
@@ -172,8 +183,10 @@ exports.orders_delete_order = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Order deleted",
-            orderId: orderId
+            data: {
+                message: "Order deleted",
+                orderId: orderId
+            }
         });
 
     } catch (err) {

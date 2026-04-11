@@ -8,10 +8,10 @@ exports.users_create_user = async (req, res) => {
     try {
         const { email, password, username, age } = req.body;
 
-        if (!email || !password || !username || age === undefined) {
+        if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                error: { message: "All fields are required" }
+                error: { message: "Email and password are required" }
             });
         }
 
@@ -22,14 +22,14 @@ exports.users_create_user = async (req, res) => {
             });
         }
 
-        if (typeof age !== "number" || age <= 0) {
-            return res.status(400).json({
-                success: false,
-                error: { message: "Age must be a positive number" }
-            });
+        // Generate username if not provided
+        let finalUsername = username;
+        if (!finalUsername) {
+            const base = email.split('@')[0];
+            finalUsername = base + Math.floor(Math.random() * 10000);
         }
 
-        if (typeof username !== "string" || username.length < 3) {
+        if (typeof finalUsername !== "string" || finalUsername.length < 3) {
             return res.status(400).json({
                 success: false,
                 error: { message: "Username must be at least 3 characters" }
@@ -40,26 +40,15 @@ exports.users_create_user = async (req, res) => {
         if (emailExists) {
             return res.status(409).json({
                 success: false,
-                message: "Email already exists"
+                error: { message: "User already exists" }
             });
         }
 
-        const usernameExists = await User.findOne({ username });
+        const usernameExists = await User.findOne({ username: finalUsername });
         if (usernameExists) {
             const base = email.split('@')[0];
-
-            const suggestions = [
-                base + Math.floor(Math.random() * 100),
-                base + "_01",
-                base + "_official",
-                base + Date.now().toString().slice(-3)
-            ];
-
-            return res.status(409).json({
-                success: false,
-                message: "Username unavailable",
-                suggestions
-            });
+            const newUsername = base + Math.floor(Math.random() * 100000);
+            finalUsername = newUsername;
         }
 
         const hash = await bcrypt.hash(password, 10);
@@ -68,26 +57,40 @@ exports.users_create_user = async (req, res) => {
             _id: new mongoose.Types.ObjectId(),
             email,
             password: hash,
-            username,
-            age
+            username: finalUsername,
+            age: age || 18
         });
 
         const result = await newUser.save();
 
-        console.log(result);
+        const token = jwt.sign({
+            email: result.email,
+            userId: result._id
+        },
+            process.env.JWT_SECRET_KEY,
+            {
+                expiresIn: "1h"
+            }
+        );
 
         res.status(201).json({
             success: true,
-            message: "User created",
-            _id: result._id
+            data: {
+                message: "User created",
+                token: token,
+                user: {
+                    _id: result._id,
+                    email: result.email,
+                    username: result.username,
+                    age: result.age
+                }
+            }
         });
 
     } catch (err) {
         res.status(500).json({
             success: false,
-            error: {
-                message: err.message
-            }
+            error: { message: err.message }
         });
     }
 };
@@ -98,7 +101,7 @@ exports.users_login_user = (req, res, next) => {
     if (!email || !password) {
         return res.status(400).json({
             success: false,
-            message: "Email and password are required"
+            error: { message: "Email and password are required" }
         });
     }
 
@@ -108,7 +111,7 @@ exports.users_login_user = (req, res, next) => {
             if (!user) {
                 return res.status(401).json({
                     success: false,
-                    message: "Authentication failed"
+                    error: { message: "Authentication failed" }
                 });
             }
 
@@ -117,7 +120,7 @@ exports.users_login_user = (req, res, next) => {
                 if (err) {
                     return res.status(401).json({
                         success: false,
-                        message: "Authentication failed"
+                        error: { message: "Authentication failed" }
                     });
                 }
 
@@ -135,21 +138,70 @@ exports.users_login_user = (req, res, next) => {
 
                     return res.status(200).json({
                         success: true,
-                        message: "Authentication successful",
-                        token: token
+                        data: {
+                            message: "Authentication successful",
+                            token: token,
+                            user: {
+                                _id: user._id,
+                                email: user.email,
+                                username: user.username,
+                                age: user.age
+                            }
+                        }
                     });
                 }
 
                 return res.status(401).json({
                     success: false,
-                    message: "Authentication failed"
+                    error: { message: "Authentication failed" }
                 });
             });
         })
         .catch(err => {
             res.status(500).json({
                 success: false,
-                message: err.message
+                error: { message: err.message }
+            });
+        });
+};
+
+exports.users_get_profile = (req, res, next) => {
+    const userId = req.userData.userId;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({
+            success: false,
+            error: { message: "Invalid user ID" }
+        });
+    }
+
+    User.findById(userId)
+        .select('_id email username age')
+        .exec()
+        .then(user => {
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    error: { message: "User not found" }
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    user: {
+                        _id: user._id,
+                        email: user.email,
+                        username: user.username,
+                        age: user.age
+                    }
+                }
+            });
+        })
+        .catch(err => {
+            res.status(500).json({
+                success: false,
+                error: { message: err.message }
             });
         });
 };
@@ -160,21 +212,21 @@ exports.users_delete_user = (req, res, next) => {
     if (!req.userData || !req.userData.userId) {
         return res.status(401).json({
             success: false,
-            message: "Authentication failed"
+            error: { message: "Authentication failed" }
         });
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         return res.status(404).json({
             success: false,
-            message: "User not found"
+            error: { message: "User not found" }
         });
     }
 
     if (req.userData.userId !== userId) {
         return res.status(403).json({
             success: false,
-            message: "Unauthorized"
+            error: { message: "Unauthorized" }
         });
     }
 
@@ -185,19 +237,21 @@ exports.users_delete_user = (req, res, next) => {
             if (result.deletedCount === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "User not found"
+                    error: { message: "User not found" }
                 });
             }
 
             res.status(200).json({
                 success: true,
-                message: "User deleted"
+                data: {
+                    message: "User deleted"
+                }
             });
         })
         .catch(err => {
             res.status(500).json({
                 success: false,
-                message: err.message
+                error: { message: err.message }
             });
         });
 };
