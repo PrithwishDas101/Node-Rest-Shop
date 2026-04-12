@@ -63,8 +63,9 @@ exports.products_create_product = (req, res, next) => {
         });
     }
 
-    const port = process.env.PORT || 8000;
-    const imageUrl = `http://localhost:${port}/uploads/${req.file.filename}`;
+    // Use environment variable for base URL
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
     const product = new Product({
         _id: new mongoose.Types.ObjectId(),

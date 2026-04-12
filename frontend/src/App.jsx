@@ -24,15 +24,34 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen bg-slate-50">
           <Navigation />
+
           <main className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Routes>
-              {/* Public Routes */}
+
+              {/* PUBLIC ROUTES */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/products/:id" element={<ProductDetailPage />} />
 
-              {/* Protected Routes */}
+              {/* PUBLIC (but now protected for safety) */}
+              <Route
+                path="/products"
+                element={
+                  <ProtectedRoute>
+                    <ProductsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/products/:id"
+                element={
+                  <ProtectedRoute>
+                    <ProductDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* PROTECTED ROUTES */}
               <Route
                 path="/create-product"
                 element={
@@ -41,6 +60,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/orders"
                 element={
@@ -49,6 +69,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/account"
                 element={
@@ -58,11 +79,15 @@ function App() {
                 }
               />
 
-              {/* Catch all */}
+              {/* DEFAULT ROUTE */}
               <Route path="/" element={<Navigate to="/products" replace />} />
+
+              {/* NOT FOUND */}
               <Route path="*" element={<NotFoundPage />} />
+
             </Routes>
           </main>
+
           <ToastContainer />
         </div>
       </AuthProvider>

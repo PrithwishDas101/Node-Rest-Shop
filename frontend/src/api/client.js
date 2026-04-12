@@ -25,12 +25,24 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    const status = error.response?.status;
+
+    if (status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+
+      // IMPORTANT FIX:
+      // Do NOT redirect on login/signup failures
+      const isAuthRequest =
+        error.config?.url?.includes('/login') ||
+        error.config?.url?.includes('/signup');
+
+      if (!isAuthRequest) {
+        // safer SPA redirect (no full reload)
+        window.location.href = '/login';
+      }
     }
+
     return Promise.reject(error);
   }
 );

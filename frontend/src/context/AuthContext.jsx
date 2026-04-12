@@ -1,4 +1,10 @@
-import React, { createContext, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useCallback,
+  useEffect
+} from 'react';
+
 import { authAPI } from '../api/endpoints';
 import { toast } from '../utils/toast';
 
@@ -10,11 +16,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize from localStorage
+  // prevents UI glitches during initial load
+  const [authReady, setAuthReady] = useState(false);
+
+  // INIT AUTH FROM STORAGE
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
@@ -24,75 +33,120 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('user');
       }
     }
-    
+
     setIsInitialized(true);
+    setAuthReady(true);
   }, []);
 
+  // SIGNUP
   const signup = useCallback(async (email, password) => {
     setLoading(true);
+
     try {
       const response = await authAPI.signup(email, password);
       const { token: newToken, user: userData } = response.data.data;
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       setToken(newToken);
       setUser(userData);
+
       toast.success('Signup successful!');
-      
-      return true;
+
+      return {
+        success: true
+      };
+
     } catch (error) {
-      const message = error.response?.data?.error?.message || 'Signup failed';
+      const message =
+        error.response?.data?.error?.message || 'Signup failed';
+
       toast.error(message);
-      return false;
+
+      return {
+        success: false,
+        message
+      };
+
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // LOGIN
   const login = useCallback(async (email, password) => {
     setLoading(true);
+
     try {
       const response = await authAPI.login(email, password);
       const { token: newToken, user: userData } = response.data.data;
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       setToken(newToken);
       setUser(userData);
+
       toast.success('Login successful!');
-      
-      return true;
+
+      return {
+        success: true
+      };
+
     } catch (error) {
-      const message = error.response?.data?.error?.message || 'Login failed';
+      const message =
+        error.response?.data?.error?.message || 'Login failed';
+
       toast.error(message);
-      return false;
+
+      return {
+        success: false,
+        message
+      };
+
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // LOGOUT
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+
     toast.success('Logged out successfully');
   }, []);
 
+  // DELETE ACCOUNT
   const deleteAccount = useCallback(async (userId) => {
     setLoading(true);
+
     try {
       await authAPI.deleteAccount(userId);
+
       logout();
+
       toast.success('Account deleted successfully');
-      return true;
+
+      return {
+        success: true
+      };
+
     } catch (error) {
-      const message = error.response?.data?.error?.message || 'Failed to delete account';
+      const message =
+        error.response?.data?.error?.message ||
+        'Failed to delete account';
+
       toast.error(message);
-      return false;
+
+      return {
+        success: false,
+        message
+      };
+
     } finally {
       setLoading(false);
     }
@@ -103,6 +157,7 @@ export function AuthProvider({ children }) {
     token,
     loading,
     isInitialized,
+    authReady, // safe internal flag
     isAuthenticated: !!token,
     signup,
     login,

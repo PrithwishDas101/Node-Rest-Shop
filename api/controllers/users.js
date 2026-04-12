@@ -95,7 +95,7 @@ exports.users_create_user = async (req, res) => {
     }
 };
 
-exports.users_login_user = (req, res, next) => {
+exports.users_login_user = (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -108,59 +108,62 @@ exports.users_login_user = (req, res, next) => {
     User.findOne({ email })
         .exec()
         .then(user => {
+
+            // CASE 1: user not found
             if (!user) {
                 return res.status(401).json({
                     success: false,
-                    error: { message: "Authentication failed" }
+                    error: { message: "No account found with this email" }
                 });
             }
 
             bcrypt.compare(password, user.password, (err, result) => {
 
+                // CASE 2: bcrypt error
                 if (err) {
-                    return res.status(401).json({
+                    return res.status(500).json({
                         success: false,
-                        error: { message: "Authentication failed" }
+                        error: { message: "Something went wrong. Try again." }
                     });
                 }
 
-                if (result) {
+                // CASE 3: wrong password
+                if (!result) {
+                    return res.status(401).json({
+                        success: false,
+                        error: { message: "Incorrect password" }
+                    });
+                }
 
-                    const token = jwt.sign({
+                // SUCCESS
+                const token = jwt.sign(
+                    {
                         email: user.email,
                         userId: user._id
                     },
-                        process.env.JWT_SECRET_KEY,
-                        {
-                            expiresIn: "1h"
-                        }
-                    )
+                    process.env.JWT_SECRET_KEY,
+                    { expiresIn: "1h" }
+                );
 
-                    return res.status(200).json({
-                        success: true,
-                        data: {
-                            message: "Authentication successful",
-                            token: token,
-                            user: {
-                                _id: user._id,
-                                email: user.email,
-                                username: user.username,
-                                age: user.age
-                            }
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        message: "Login successful",
+                        token,
+                        user: {
+                            _id: user._id,
+                            email: user.email,
+                            username: user.username,
+                            age: user.age
                         }
-                    });
-                }
-
-                return res.status(401).json({
-                    success: false,
-                    error: { message: "Authentication failed" }
+                    }
                 });
             });
         })
         .catch(err => {
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                error: { message: err.message }
+                error: { message: "Server error. Please try again later." }
             });
         });
 };

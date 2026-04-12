@@ -8,7 +8,12 @@ import { useState } from 'react';
 export function LoginPage() {
   const navigate = useNavigate();
   const { login, loading, isAuthenticated } = useAuth();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+
   const [errors, setErrors] = useState({});
 
   React.useEffect(() => {
@@ -19,41 +24,72 @@ export function LoginPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    if (!formData.password) newErrors.password = 'Password is required';
+
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
-    const success = await login(formData.email, formData.password);
-    if (success) {
+    const result = await login(formData.email, formData.password);
+
+    // ✅ SUCCESS
+    if (result.success) {
       navigate('/products');
+      return;
     }
+
+    // ❌ FAILURE → show backend error under password field
+    setErrors({
+      password: result.message || 'Invalid credentials'
+    });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
+
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h1>
-          <p className="text-slate-600">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-slate-600">
+            Sign in to your account
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="card p-8 space-y-6">
+
           <Input
             label="Email Address"
             name="email"
@@ -84,17 +120,22 @@ export function LoginPage() {
           >
             Sign In
           </Button>
+
         </form>
 
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-slate-600">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link
+              to="/signup"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
               Create one
             </Link>
           </p>
         </div>
+
       </div>
     </div>
   );

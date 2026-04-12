@@ -1,10 +1,12 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export function ProtectedRoute({ children }) {
   const { isAuthenticated, isInitialized } = useAuth();
+  const location = useLocation();
 
+  // ✅ still loading auth state → do nothing
   if (!isInitialized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -16,7 +18,19 @@ export function ProtectedRoute({ children }) {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  // 🔥 FIX: allow public routes to NEVER be affected by auth logic
+  const publicRoutes = ['/login', '/signup'];
+
+  if (publicRoutes.includes(location.pathname)) {
+    return children;
+  }
+
+  // 🔥 ONLY protect real private routes
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }
 
 export default ProtectedRoute;
