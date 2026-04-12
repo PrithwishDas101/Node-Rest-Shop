@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navigation from './components/Navigation';
 import ToastContainer from './components/ToastContainer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -20,10 +21,11 @@ import './styles/index.css';
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <div className="min-h-screen bg-slate-50">
-          <Navigation />
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+            <Navigation />
 
           <main className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Routes>
@@ -91,7 +93,8 @@ function App() {
           <ToastContainer />
         </div>
       </AuthProvider>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

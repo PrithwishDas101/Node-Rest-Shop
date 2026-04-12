@@ -20,19 +20,15 @@ export function ProductsPage() {
 
       const response = await productsAPI.getAll();
 
-      // 🔍 DEBUG LOGS
       console.log("FULL RESPONSE:", response);
       console.log("RESPONSE.DATA:", response.data);
       console.log("POSSIBLE PATH 1:", response.data?.data?.products);
       console.log("POSSIBLE PATH 2:", response.data?.products);
 
-      // 🔥 SAFE DATA EXTRACTION (handles ALL cases)
       const productsData =
         response.data?.data?.products ||
         response.data?.products ||
         [];
-
-      console.log("FINAL PRODUCTS USED:", productsData);
 
       setProducts(productsData);
     } catch (err) {
@@ -48,6 +44,7 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-8">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -56,6 +53,7 @@ export function ProductsPage() {
             Browse our collection of products
           </p>
         </div>
+
         <Button onClick={() => navigate("/create-product")}>
           + Add Product
         </Button>
@@ -77,16 +75,15 @@ export function ProductsPage() {
           ))}
         </div>
       )}
+
     </div>
   );
 }
 
 function ProductCard({ product, onNavigate }) {
-  // 🔍 DEBUG EACH PRODUCT
   console.log("SINGLE PRODUCT:", product);
   console.log("IMAGE URL:", product.productImage);
 
-  // 🔥 FORCE FIX: ensure absolute URL
   let imageUrl = product.productImage;
 
   if (imageUrl && !imageUrl.startsWith("http")) {
@@ -95,9 +92,10 @@ function ProductCard({ product, onNavigate }) {
 
   return (
     <div
-      className="card overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+      className="card overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:scale-[1.03] hover:-translate-y-1 hover:shadow-xl"
       onClick={onNavigate}
     >
+
       {/* Image */}
       <div className="h-48 bg-slate-200 overflow-hidden">
         {imageUrl ? (
@@ -122,10 +120,12 @@ function ProductCard({ product, onNavigate }) {
         <h3 className="font-semibold text-slate-900 line-clamp-2">
           {product.name}
         </h3>
+
         <div className="flex items-center justify-between">
           <span className="text-2xl font-bold text-primary-600">
             ${Number(product.price) || 0}
           </span>
+
           <Button
             variant="primary"
             size="sm"
@@ -138,6 +138,7 @@ function ProductCard({ product, onNavigate }) {
           </Button>
         </div>
       </div>
+
     </div>
   );
 }
